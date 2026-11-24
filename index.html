@@ -1,699 +1,267 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Telemetría Hídrica IoT - SeLA Oruro</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    :root {
-      --primary: #059669;
-      --primary-dark: #065f46;
-      --primary-light: #d1fae5;
-      --accent: #10b981;
-      --bg: #f0fdf4;
-      --card: #ffffff;
-      --text: #064e3b;
-      --text-body: #1e293b;
-      --muted: #64748b;
-      --border: #bbf7d0;
-      --danger: #dc2626;
-      --warning: #d97706;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    }
-
-    body {
-      background-color: var(--bg);
-      color: var(--text-body);
-      min-height: 100vh;
-    }
-
-    /* ================= PANTALLA DE ACCESO ÚNICA ================= */
-    #login-screen {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 1.25rem;
-      background: linear-gradient(135deg, #064e3b 0%, #059669 60%, #10b981 100%);
-    }
-
-    .login-box {
-      background: var(--card);
-      padding: 2.2rem 1.8rem;
-      border-radius: 16px;
-      width: 100%;
-      max-width: 390px;
-      box-shadow: 0 20px 30px -10px rgba(6, 78, 59, 0.35);
-      border-top: 5px solid var(--accent);
-    }
-
-    .login-icon {
-      width: 54px;
-      height: 54px;
-      background: var(--primary-light);
-      color: var(--primary-dark);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1rem;
-      font-size: 1.6rem;
-      font-weight: bold;
-    }
-
-    .login-box h2 {
-      text-align: center;
-      margin-bottom: 0.35rem;
-      color: var(--primary-dark);
-      font-size: 1.45rem;
-    }
-
-    .login-box p {
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-bottom: 1.6rem;
-    }
-
-    .form-group {
-      margin-bottom: 1.1rem;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-bottom: 0.4rem;
-      color: var(--primary-dark);
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 0.8rem 0.9rem;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 10px;
-      font-size: 1rem;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .form-group input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
-    }
-
-    .btn {
-      width: 100%;
-      padding: 0.85rem;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-    }
-
-    .btn:hover { background: var(--primary-dark); }
-    .btn:active { transform: scale(0.98); }
-
-    #login-error {
-      color: var(--danger);
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      padding: 0.6rem;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      text-align: center;
-      margin-top: 1rem;
-      display: none;
-    }
-
-    /* ================= DASHBOARD PRINCIPAL ================= */
-    #dashboard {
-      display: none;
-      padding: 1rem;
-      max-width: 1240px;
-      margin: 0 auto;
-    }
-
-    @media (min-width: 768px) {
-      #dashboard { padding: 1.75rem; }
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      background: var(--card);
-      padding: 1.2rem 1.4rem;
-      border-radius: 14px;
-      box-shadow: 0 2px 8px rgba(6, 78, 59, 0.06);
-      border: 1px solid var(--border);
-      margin-bottom: 1.25rem;
-    }
-
-    header h1 {
-      font-size: clamp(1.15rem, 2.5vw, 1.45rem);
-      color: var(--primary-dark);
-    }
-
-    header small {
-      display: block;
-      color: var(--muted);
-      font-size: 0.82rem;
-      margin-top: 0.2rem;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      flex-wrap: wrap;
-    }
-
-    .role-select {
-      padding: 0.45rem 0.75rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: #f0fdf4;
-      color: var(--primary-dark);
-      font-size: 0.84rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.45rem 0.85rem;
-      border-radius: 999px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      background: var(--primary-light);
-      color: var(--primary-dark);
-    }
-
-    .btn-logout {
-      background: #fee2e2;
-      color: var(--danger);
-      border: 1px solid #fecaca;
-      padding: 0.45rem 0.95rem;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .btn-logout:hover { background: #fecaca; }
-
-    /* Tarjetas métricas */
-    .grid-cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .card {
-      background: var(--card);
-      padding: 1.25rem;
-      border-radius: 14px;
-      box-shadow: 0 2px 6px rgba(6, 78, 59, 0.05);
-      border: 1px solid var(--border);
-      border-left: 5px solid var(--primary);
-    }
-
-    .card h3 {
-      font-size: 0.78rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-    }
-
-    .card .value {
-      font-size: clamp(1.5rem, 3vw, 1.95rem);
-      font-weight: 700;
-      margin: 0.45rem 0;
-      color: var(--primary-dark);
-    }
-
-    .card .sub {
-      font-size: 0.82rem;
-      color: var(--muted);
-    }
-
-    /* Contenedor Gráfica y Tabla */
-    .grid-main {
-      display: grid;
-      grid-template-columns: 1.6fr 1fr;
-      gap: 1.25rem;
-    }
-
-    @media (max-width: 900px) {
-      .grid-main { grid-template-columns: 1fr; }
-    }
-
-    .panel {
-      background: var(--card);
-      padding: 1.25rem;
-      border-radius: 14px;
-      box-shadow: 0 2px 6px rgba(6, 78, 59, 0.05);
-      border: 1px solid var(--border);
-      overflow: hidden;
-    }
-
-    .panel h2 {
-      font-size: 1.05rem;
-      margin-bottom: 1rem;
-      color: var(--primary-dark);
-      border-bottom: 1px solid var(--primary-light);
-      padding-bottom: 0.6rem;
-    }
-
-    .chart-container {
-      position: relative;
-      width: 100%;
-      height: 260px;
-    }
-
-    @media (min-width: 768px) {
-      .chart-container { height: 310px; }
-    }
-
-    .table-wrapper {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.88rem;
-      min-width: 280px;
-    }
-
-    th, td {
-      padding: 0.7rem 0.5rem;
-      text-align: left;
-      border-bottom: 1px solid #ecfdf5;
-    }
-
-    th {
-      color: var(--primary-dark);
-      font-weight: 600;
-      background-color: #f0fdf4;
-    }
-
-    .total-row td {
-      font-weight: 700;
-      font-size: 0.98rem;
-      color: var(--primary-dark);
-      border-top: 2px solid var(--primary);
-      background-color: #ecfdf5;
-    }
-
-    .audit-box {
-      margin-top: 1rem;
-      padding: 0.85rem 1rem;
-      border-radius: 10px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      font-size: 0.84rem;
-      display: none;
-    }
-
-    .audit-box.active {
-      display: block;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Telemetría Hídrica</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--ink:#0b2a33;--ink2:#134e5e;--aq:#0891b2;--tl:#0d9488;--ln:#dbe7ea;--mu:#5b7380}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Inter,'Segoe UI',system-ui,sans-serif}
+body{background:#edf3f5;color:#16303a;min-height:100vh;font-variant-numeric:tabular-nums}
+.logo{width:44px;height:44px}
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1.2rem;background:linear-gradient(160deg,#071d24,#0b2a33 55%,#0e4a57)}
+.box{background:#fff;padding:2.2rem 1.9rem;border-radius:20px;width:100%;max-width:390px;box-shadow:0 30px 60px -20px #0009;text-align:center}
+.box .logo{width:58px;height:58px;margin-bottom:1rem}
+.box h2{color:var(--ink)}
+.box p{color:var(--mu);font-size:.92rem;margin:.3rem 0 1.5rem}
+label{display:block;text-align:left;font-size:.85rem;font-weight:600;margin-bottom:.35rem;color:var(--ink)}
+input{width:100%;padding:.8rem .95rem;border:1.5px solid var(--ln);border-radius:12px;font-size:1rem;margin-bottom:1rem;background:#f8fbfc}
+input:focus{outline:3px solid #0891b24d;border-color:var(--aq)}
+.btn{padding:.6rem 1.1rem;background:linear-gradient(135deg,var(--aq),var(--tl));color:#fff;border:0;border-radius:12px;font-weight:600;cursor:pointer}
+.box .btn{width:100%;padding:.85rem}
+.btn.out{background:#ffffff1a;border:1px solid #ffffff47}
+#err{display:none;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;padding:.55rem;border-radius:10px;font-size:.85rem;margin-top:.9rem}
+#dash{display:none;max-width:1280px;margin:0 auto;padding:1rem 1rem 2rem}
+header{position:relative;overflow:hidden;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;padding:1.4rem 1.6rem 2.3rem;margin-bottom:1.2rem;border-radius:20px;color:#fff;background:linear-gradient(120deg,var(--ink),var(--ink2) 60%,#0e7490)}
+.brand,.acts{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
+.acts{position:relative;z-index:1}
+h1{font-size:clamp(1.15rem,2.6vw,1.5rem)}
+header small,.reloj{color:#a5d3dc;font-size:.8rem}
+.reloj{margin-top:.2rem}
+.reloj b{color:#fff}
+.badge{padding:.4rem .8rem;border-radius:999px;font-size:.78rem;font-weight:600;background:#10b9812e;color:#6ee7b7;border:1px solid #6ee7b759}
+.warn{background:#f59e0b2e;color:#fcd34d;border-color:#fcd34d66}
+.bad{background:#ef444438;color:#fca5a5;border-color:#fca5a573}
+.ola{position:absolute;left:0;bottom:-1px;width:200%;height:26px;opacity:.3}
+.flow .ola{animation:ola 6s linear infinite}
+@keyframes ola{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.flow .ola{animation:none}}
+#banner{display:none;background:#fffbeb;border:1px solid #fcd34d;border-left:6px solid #f59e0b;color:#92400e;padding:.9rem 1.1rem;border-radius:12px;margin-bottom:1.2rem;font-weight:600}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
+.card,.panel{background:#fff;border:1px solid var(--ln);border-radius:16px;box-shadow:0 10px 22px -16px #0b2a334d}
+.card{padding:1.15rem 1.2rem}
+.card h3{font-size:.8rem;color:var(--mu)}
+.v{font-size:clamp(1.5rem,3vw,2rem);font-weight:700;color:var(--ink);margin:.4rem 0 .2rem}
+.v small,.s,.panel h2 small{color:var(--mu);font-size:.78rem;font-weight:400}
+.card:first-child .v{font-size:clamp(2rem,4vw,2.7rem)}
+.stale .v{opacity:.35}
+.alert{border-color:#f59e0b;background:#fffbeb}
+.panel{padding:1.2rem;margin-top:1.2rem;overflow:hidden}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.2rem}
+.two .panel{margin-top:0}
+@media(max-width:900px){.two{grid-template-columns:1fr}}
+.panel h2{font-size:1rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;padding-bottom:.7rem;margin-bottom:.9rem;border-bottom:1px solid var(--ln)}
+.chart{position:relative;height:290px}
+.tw{overflow:auto;max-height:360px}
+table{width:100%;border-collapse:collapse;font-size:.86rem}
+th,td{padding:.6rem .55rem;text-align:left;border-bottom:1px solid #eef4f5}
+th{background:#f3f8f9;color:var(--ink2);position:sticky;top:0}
+.n{text-align:right}
+.hoy td{font-weight:700;background:#e6f6f8}
+footer{text-align:center;color:var(--mu);font-size:.78rem;padding-top:1.2rem}
+</style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="gr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#67e8f9"/><stop offset="1" stop-color="#0d9488"/></linearGradient><symbol id="gota" viewBox="0 0 48 48"><path d="M24 4C24 4 9 21 9 31a15 15 0 0 0 30 0C39 21 24 4 24 4z" fill="url(#gr)"/><path d="M17 31a7 7 0 0 0 7 7" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".8"/></symbol></defs></svg>
 
-  <!-- 1. PANTALLA DE ACCESO ÚNICA -->
-  <main id="login-screen">
-    <div class="login-box">
-      <div class="login-icon">💧</div>
-      <h2>Telemetría Hídrica</h2>
-      <p>Sistema Inteligente SeLA - Oruro</p>
-      <form id="login-form" autocomplete="off">
-        <div class="form-group">
-          <label for="username">Usuario Autorizado</label>
-          <input type="text" id="username" placeholder="Ej. IVAN" required>
-        </div>
-        <div class="form-group">
-          <label for="password">Clave de Acceso</label>
-          <input type="password" id="password" placeholder="••••" required>
-        </div>
-        <button type="submit" class="btn">Iniciar Sesión</button>
-        <div id="login-error">Usuario o contraseña incorrectos.</div>
-      </form>
-    </div>
-  </main>
+<main id="login-screen">
+  <form class="box" id="login">
+    <svg class="logo"><use href="#gota"/></svg>
+    <h2>Telemetría Hídrica</h2>
+    <p>Monitoreo de consumo de agua</p>
+    <label for="u">Usuario</label><input id="u" required autocomplete="off">
+    <label for="p">Clave de acceso</label><input id="p" type="password" required>
+    <button class="btn">Iniciar sesión</button>
+    <div id="err">Usuario o clave incorrectos.</div>
+  </form>
+</main>
 
-  <!-- 2. PANEL DE CONTROL -->
-  <section id="dashboard">
-    <header>
-      <div>
-        <h1>Medidor IoT de Consumo de Agua</h1>
-        <small>Monitoreo ESP32 + Cálculo Tarifario SeLA Oruro</small>
-      </div>
-      <div class="header-actions">
-        <select id="role-select" class="role-select" aria-label="Seleccionar vista">
-          <option value="usuario">Vista: Usuario</option>
-          <option value="prestador">Vista: Prestador / Auditoría</option>
-        </select>
-        <span class="status-badge" id="connection-status">● Conectando...</span>
-        <button class="btn-logout" id="btn-logout">Cerrar Sesión</button>
-      </div>
-    </header>
+<section id="dash">
+  <header id="hero">
+    <div class="brand"><svg class="logo"><use href="#gota"/></svg>
+      <div><h1>Medidor de consumo de agua</h1><small>Monitoreo de consumo en tiempo real</small>
+      <div class="reloj"><span id="fecha"></span> <b id="reloj"></b></div></div></div>
+    <div class="acts"><span class="badge warn" id="fb"></span><span class="badge warn" id="esp"></span><button class="btn out" id="salir">Cerrar sesión</button></div>
+    <svg class="ola" viewBox="0 0 1200 26" preserveAspectRatio="none"><path d="M0 13Q150 0 300 13T600 13T900 13T1200 13V26H0Z" fill="#67e8f9"/></svg>
+  </header>
 
-    <div class="grid-cards">
-      <div class="card">
-        <h3>Caudal Instantáneo</h3>
-        <div class="value" id="val-caudal">0.00 <span style="font-size:0.95rem; font-weight:500;">L/min</span></div>
-        <div class="sub">Sensor Hall YF-S201</div>
-      </div>
+  <div id="banner" role="alert">Bolsa de aire detectada en la tubería.</div>
 
-      <div class="card" style="border-left-color: #10b981;">
-        <h3>Volumen Acumulado</h3>
-        <div class="value" id="val-litros">0.00 <span style="font-size:0.95rem; font-weight:500;">L</span></div>
-        <div class="sub" id="val-m3">Equivalente: 0.00000 m³</div>
-      </div>
+  <div class="cards">
+    <div class="card" id="kq"><h3>Caudal actual</h3><div class="v" id="q"></div></div>
+    <div class="card" id="kl"><h3>Volumen acumulado</h3><div class="v" id="l"></div><div class="s" id="m3"></div></div>
+    <div class="card" id="ke"><h3>Estado</h3><div class="v" id="est" style="font-size:1.25rem"></div><div class="s" id="aire"></div></div>
+  </div>
 
-      <div class="card" style="border-left-color: #047857;">
-        <h3>Importe Estimado (SeLA)</h3>
-        <div class="value" id="val-costo">Bs. 18.50</div>
-        <div class="sub">Categoría: Doméstica</div>
-      </div>
+  <div class="panel"><h2>Caudal en tiempo real (L/min) <small>Los puntos rojos marcan aire</small></h2><div class="chart"><canvas id="cv"></canvas></div></div>
 
-      <div class="card" style="border-left-color: #34d399;">
-        <h3>Última Lectura / Estado</h3>
-        <div class="value" style="font-size: 1.35rem;" id="val-hora">--:--:--</div>
-        <div class="sub" id="val-estado-flujo">En espera de lectura</div>
-      </div>
-    </div>
+  <div class="two">
+    <div class="panel"><h2>Consumo por día <small id="msg"></small></h2>
+      <div class="tw"><table><thead><tr><th>Fecha</th><th class="n">Litros</th><th class="n">m³</th><th class="n">Aire</th></tr></thead><tbody id="td"></tbody></table></div></div>
+    <div class="panel"><h2>Consumo por mes <button class="btn" id="act">Actualizar</button></h2>
+      <div class="tw"><table><thead><tr><th>Mes</th><th class="n">Litros</th><th class="n">m³</th><th class="n">Aire</th></tr></thead><tbody id="tm"></tbody></table></div></div>
+  </div>
+  <footer>Telemetría Hídrica, Medidor 01. Hora de Bolivia (UTC-4).</footer>
+</section>
 
-    <div class="grid-main">
-      <div class="panel">
-        <h2>Curva de Caudal en Tiempo Real (L/min)</h2>
-        <div class="chart-container">
-          <canvas id="flowChart"></canvas>
-        </div>
-        <div class="audit-box" id="audit-panel">
-          <strong>Diagnóstico de Auditoría (medidor_01):</strong>
-          <div id="audit-detalle" style="margin-top: 0.35rem; color: #334155;">
-            Esperando datos de telemetría...
-          </div>
-        </div>
-      </div>
+<script type="module">
+const $ = i => document.getElementById(i);
+const CFG = {
+  apiKey: "AIzaSyC408VpxKuX-TCluBuOmSEh0IwEhLUBI5o",
+  authDomain: "base-de-datos-ivan-default-rtdb.firebaseapp.com",
+  databaseURL: "https://base-de-datos-ivan-default-rtdb.firebaseio.com/",
+  projectId: "base-de-datos-ivan",
+  appId: "1:000000000000:web:0000000000000000"
+};
+// Ruta en Firebase, segundos sin reporte, duración de la alerta (ms), meses de historial, caudal máx. (L/min), UTC-4, puntos de la gráfica
+const RUTA = 'medidor_01', OFFLINE = 20, AIRE_MS = 3e4, MESES = 2, QMAX = 30, TZ = 4, PTS = 30;
 
-      <div class="panel">
-        <h2>Desglose Tarifario SeLA Oruro</h2>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Bloque de Consumo</th>
-                <th>Volumen</th>
-                <th>Importe</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Mínimo (0 - 10 m³)</td>
-                <td id="b0-vol">0.00 m³</td>
-                <td id="b0-bs">Bs. 18.50</td>
-              </tr>
-              <tr>
-                <td>Bloque 1 (11 - 20 m³)</td>
-                <td id="b1-vol">0.00 m³</td>
-                <td id="b1-bs">Bs. 0.00</td>
-              </tr>
-              <tr>
-                <td>Bloque 2 (21 - 30 m³)</td>
-                <td id="b2-vol">0.00 m³</td>
-                <td id="b2-bs">Bs. 0.00</td>
-              </tr>
-              <tr>
-                <td>Bloque 3 (> 30 m³)</td>
-                <td id="b3-vol">0.00 m³</td>
-                <td id="b3-bs">Bs. 0.00</td>
-              </tr>
-              <tr class="total-row">
-                <td colspan="2">TOTAL ESTIMADO</td>
-                <td id="total-sela">Bs. 18.50</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </section>
+// ---------- Utilidades ----------
+const num = v => (v = Number(v)) >= 0 && isFinite(v) ? v : 0;
+const bool = v => v === true || v === 'true';
+const fh = (t, a, b) => new Date(t - TZ * 36e5).toISOString().slice(a, b);
+const dia = t => fh(t, 0, 10), hora = t => fh(t, 11, 19);
+const f2 = v => v.toFixed(2), cu = l => (l / 1000).toFixed(3);
+const dur = s => s < 60 ? s + ' s' : s < 3600 ? (s / 60 | 0) + ' min' : (s / 3600 | 0) + ' h';
 
-  <!-- FIREBASE SDK Y LÓGICA -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+// ---------- Acceso ----------
+let started = false;
+const show = ok => {
+  $('login-screen').style.display = ok ? 'none' : 'flex';
+  $('dash').style.display = ok ? 'block' : 'none';
+  if (ok && !started) { started = true; iniciar(); }
+};
+const HASH = 'b1d0f58fffdd6fecdc1d90f773a20a019feedcd3f5bdbc968d7ddb746135efdf';
+const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(x => x.toString(16).padStart(2, '0')).join('');
+$('login').onsubmit = async e => {
+  e.preventDefault();
+  const err = $('err'), fail = m => { err.textContent = m; err.style.display = 'block'; };
+  try {
+    if (await sha($('u').value.trim().toUpperCase() + ':' + $('p').value.trim()) === HASH) { sessionStorage.auth = '1'; show(true); }
+    else fail('Usuario o clave incorrectos.');
+  } catch { fail('Abre la página con HTTPS para iniciar sesión.'); }
+};
+$('salir').onclick = () => { sessionStorage.removeItem('auth'); $('p').value = ''; show(false); };
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyC408VpxKuX-TCluBuOmSEh0IwEhLUBI5o",
-      authDomain: "base-de-datos-ivan-default-rtdb.firebaseapp.com",
-      databaseURL: "https://base-de-datos-ivan-default-rtdb.firebaseio.com/",
-      projectId: "base-de-datos-ivan",
-      storageBucket: "base-de-datos-ivan.appspot.com",
-      appId: "1:000000000000:web:0000000000000000"
-    };
+// ---------- Estado ----------
+let db, fb, offset = 0, online = null, errMsg = '', ult = null, aireHasta = 0, aireOn = false;
+let vivos = [], hist = [], dias = {}, cargando = false, tsGraf = 0, chart;
+const ahora = () => Date.now() + offset;   // reloj corregido con el del servidor
 
-    const loginScreen = document.getElementById('login-screen');
-    const dashboard = document.getElementById('dashboard');
-    const loginForm = document.getElementById('login-form');
-    const loginError = document.getElementById('login-error');
-    const btnLogout = document.getElementById('btn-logout');
-    const roleSelect = document.getElementById('role-select');
-    const auditPanel = document.getElementById('audit-panel');
+// ---------- Gráfica ----------
+function crearGrafica() {
+  if (!window.Chart) return;
+  chart = new Chart($('cv'), {
+    type: 'line',
+    data: { labels: [], datasets: [{ data: [], borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,.14)', borderWidth: 2.5, fill: true, tension: .3, pointRadius: [], pointBackgroundColor: [] }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 0, maxTicksLimit: 6 } }, y: { beginAtZero: true, suggestedMax: 15 } } }
+  });
+}
+function graficar(t, q, aire) {
+  if (!chart) return;
+  const d = chart.data, s = d.datasets[0];
+  if (d.labels.length >= PTS) [d.labels, s.data, s.pointRadius, s.pointBackgroundColor].forEach(a => a.shift());
+  d.labels.push(hora(t).slice(0, 5)); s.data.push(q);
+  s.pointRadius.push(aire ? 7 : 3); s.pointBackgroundColor.push(aire ? '#dc2626' : '#0e7490');
+  chart.update('none');
+}
 
-    let firebaseIniciado = false;
-    let ultimoTimestampVisto = null;
+// ---------- Lectura en tiempo real ----------
+function lectura(d) {
+  if (!d) { ult = null; return pintar(); }
+  ult = { ts: num(d.ultima_actualizacion), rec: ahora(), caudal: num(d.caudal_lpm ?? d.caudal), l: num(d.volumen_litros ?? d.litros), aire: bool(d.aire_detectado) };
+  const t = ult.ts || ult.rec;
+  if (ult.aire) { aireHasta = ahora() + AIRE_MS; if (!aireOn) { aireOn = true; vivos.push(t); } }
+  if (t !== tsGraf) { tsGraf = t; graficar(t, ult.caudal, ult.aire); }
+  pintar(); render();
+}
 
-    roleSelect.addEventListener('change', () => {
-      auditPanel.classList.toggle('active', roleSelect.value === 'prestador');
-    });
+function pintar() {
+  const n = ahora(), set = (id, c, t) => { $(id).className = 'badge ' + c; $(id).textContent = '● ' + t; };
+  $('fecha').textContent = dia(n); $('reloj').textContent = hora(n);
+  const edad = ult ? Math.max(0, Math.round((n - (ult.ts || ult.rec)) / 1000)) : 0, off = edad > OFFLINE;
+  const f = errMsg ? ['bad', 'error'] : online === null ? ['warn', 'conectando…'] : online ? ['', 'conectado'] : ['bad', 'sin conexión'];
+  set('fb', f[0], 'Firebase: ' + f[1]);
+  const e = errMsg ? ['bad', errMsg] : !online ? ['warn', 'Esperando conexión'] : !ult ? ['warn', 'Sin datos en el nodo'] : off ? ['warn', 'Medidor sin reporte hace ' + dur(edad)] : ['', 'Medidor en línea'];
+  set('esp', e[0], e[1]);
 
-    function activarVistaDashboard() {
-      loginScreen.style.display = 'none';
-      dashboard.style.display = 'block';
-      if (!firebaseIniciado) {
-        firebaseIniciado = true;
-        iniciarFirebase();
+  const st = !ult || off || online !== true, aireAct = n < aireHasta;
+  if (!aireAct) aireOn = false;
+  ['kq', 'kl', 'ke'].forEach(i => $(i).classList.toggle('stale', st));
+  $('q').innerHTML = (st ? '--' : f2(ult.caudal)) + ' <small>L/min</small>';
+  $('l').innerHTML = (ult ? f2(ult.l) : '--') + ' <small>L</small>';
+  $('m3').textContent = ult ? cu(ult.l) + ' m³' : '';
+  $('banner').style.display = aireAct ? 'block' : 'none';
+  $('ke').classList.toggle('alert', aireAct);
+  $('hero').classList.toggle('flow', !st && !aireAct && ult.caudal > .05);
+  $('est').textContent = aireAct ? '⚠ Bolsa de aire detectada' : st ? 'Sin datos' : ult.caudal > QMAX ? '⚠ Caudal fuera de rango' : ult.caudal > .05 ? 'Flujo activo' : 'Tubería sin flujo';
+  document.title = (aireAct ? '⚠ ' : '') + 'Telemetría Hídrica';
+}
+
+// ---------- Tablas ----------
+const eventos = () => {
+  const r = [];
+  for (const x of [...hist, ...vivos].sort((a, b) => b - a)) if (!r.length || r.at(-1) - x > 6e4) r.push(x);
+  return r;
+};
+function render() {
+  const ev = eventos(), n = ahora(), hoy = dia(n), cnt = k => ev.filter(t => dia(t).startsWith(k)).length;
+  const fila = (c, a, l, k) => `<tr class="${c}"><td>${a}</td><td class="n">${f2(l)}</td><td class="n">${cu(l)}</td><td class="n">${cnt(k)}</td></tr>`;
+  $('aire').textContent = 'Bolsas de aire hoy: ' + cnt(hoy);
+  let h = '', m = '';
+  for (let i = 0; i < 31; i++) { const k = dia(n - i * 864e5); h += fila(i ? '' : 'hoy', k, dias[k] || 0, k); }
+  const d0 = new Date(n - TZ * 36e5);
+  for (let i = 0; i <= MESES; i++) {
+    const d = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() - i, 1)), k = d.toISOString().slice(0, 7);
+    const l = Object.keys(dias).reduce((a, x) => x.startsWith(k) ? a + dias[x] : a, 0);
+    m += fila(i ? '' : 'hoy', d.toLocaleDateString('es', { month: 'long', year: 'numeric', timeZone: 'UTC' }), l, k);
+  }
+  $('td').innerHTML = h; $('tm').innerHTML = m;
+}
+
+// ---------- Historial: consumo = suma de diferencias del acumulado ----------
+async function cargarHist() {
+  if (!db || cargando) return;
+  cargando = true; $('msg').textContent = 'Actualizando…';
+  try {
+    const d0 = new Date(ahora() - TZ * 36e5), ini = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() - MESES, 1) + TZ * 36e5;
+    const snap = await fb.get(fb.query(fb.ref(db, RUTA + '/historial'), fb.orderByChild('ultima_actualizacion'), fb.startAt(ini)));
+    const arr = [];
+    snap.forEach(c => { const v = c.val() || {}, ts = num(v.ultima_actualizacion); if (ts) arr.push({ ts, l: num(v.volumen_litros ?? v.litros), a: bool(v.aire_detectado) }); });
+    arr.sort((a, b) => a.ts - b.ts);
+    const D = {}, E = []; let p = null;
+    for (const e of arr) {
+      if (p) {
+        let dl = e.l - p.l;
+        if (dl < 0) dl = e.l;                                          // el ESP32 se reinició: el contador volvió a 0
+        if (dl <= (e.ts - p.ts) / 6e4 * QMAX + 1) { const k = dia(e.ts); D[k] = (D[k] || 0) + dl; }   // descarta saltos imposibles
       }
+      if (e.a && !(p && p.a)) E.push(e.ts);
+      p = e;
     }
+    dias = D; hist = E;
+    $('msg').textContent = arr.length ? `Actualizado ${hora(ahora()).slice(0, 5)}, ${arr.length} registros` : 'Sin registros en el historial';
+  } catch (e) { $('msg').textContent = 'No se pudo leer el historial: ' + (e.code || e.message); }
+  cargando = false; render();
+}
+$('act').onclick = cargarHist;
 
-    function activarVistaLogin() {
-      sessionStorage.removeItem('auth_iot_ivan');
-      dashboard.style.display = 'none';
-      loginScreen.style.display = 'flex';
-      document.getElementById('password').value = '';
-    }
+// ---------- Firebase (carga protegida: si falla, la página sigue funcionando) ----------
+async function iniciar() {
+  crearGrafica(); render(); pintar(); setInterval(pintar, 1000);
+  try {
+    const B = 'https://www.gstatic.com/firebasejs/10.12.0/', [A, M] = await Promise.all([import(B + 'firebase-app.js'), import(B + 'firebase-database.js')]);
+    fb = M; db = fb.getDatabase(A.initializeApp(CFG));
+    fb.onValue(fb.ref(db, '.info/connected'), s => { online = s.val() === true; pintar(); });
+    fb.onValue(fb.ref(db, '.info/serverTimeOffset'), s => { offset = Number(s.val()) || 0; });
+    fb.onValue(fb.ref(db, RUTA + '/tiempo_real'), s => { errMsg = ''; lectura(s.val()); },
+      e => { errMsg = e.code === 'PERMISSION_DENIED' ? 'Sin permiso en Firebase (revisa las reglas)' : 'Error de lectura'; pintar(); });
+    cargarHist(); setInterval(cargarHist, 12e4);
+  } catch { errMsg = 'No se pudo cargar Firebase (revisa internet)'; pintar(); }
+}
 
-    if (sessionStorage.getItem('auth_iot_ivan') === 'true') {
-      activarVistaDashboard();
-    } else {
-      activarVistaLogin();
-    }
-
-    loginForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const user = document.getElementById('username').value.trim().toUpperCase();
-      const pass = document.getElementById('password').value.trim();
-
-      if (user === 'IVAN' && pass === '0000') {
-        sessionStorage.setItem('auth_iot_ivan', 'true');
-        loginError.style.display = 'none';
-        activarVistaDashboard();
-      } else {
-        loginError.style.display = 'block';
-      }
-    });
-
-    btnLogout.addEventListener('click', activarVistaLogin);
-
-    const ctx = document.getElementById('flowChart').getContext('2d');
-    const flowChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [{
-          label: 'Caudal (L/min)',
-          data: [],
-          borderColor: '#059669',
-          backgroundColor: 'rgba(16, 185, 129, 0.18)',
-          borderWidth: 2.5,
-          pointBackgroundColor: '#065f46',
-          pointRadius: 3,
-          fill: true,
-          tension: 0.35
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          x: {
-            ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 6 }
-          },
-          y: {
-            beginAtZero: true,
-            suggestedMax: 15
-          }
-        }
-      }
-    });
-
-    function actualizarGrafica(hora, caudal) {
-      if (flowChart.data.labels.length >= 18) {
-        flowChart.data.labels.shift();
-        flowChart.data.datasets[0].data.shift();
-      }
-      flowChart.data.labels.push(hora);
-      flowChart.data.datasets[0].data.push(caudal);
-      flowChart.update('none');
-    }
-
-    function calcularTarifaSeLA(m3) {
-      const volumenSeguro = Math.max(0, m3);
-      const cargoFijo = 18.50;
-      const pBloque1 = 2.60;
-      const pBloque2 = 3.80;
-      const pBloque3 = 5.20;
-
-      const v0 = Math.min(volumenSeguro, 10);
-      const v1 = volumenSeguro > 10 ? Math.min(volumenSeguro - 10, 10) : 0;
-      const v2 = volumenSeguro > 20 ? Math.min(volumenSeguro - 20, 10) : 0;
-      const v3 = volumenSeguro > 30 ? (volumenSeguro - 30) : 0;
-
-      const c1 = v1 * pBloque1;
-      const c2 = v2 * pBloque2;
-      const c3 = v3 * pBloque3;
-      const total = cargoFijo + c1 + c2 + c3;
-
-      document.getElementById('b0-vol').textContent = v0.toFixed(2) + ' m³';
-      document.getElementById('b0-bs').textContent = 'Bs. ' + cargoFijo.toFixed(2);
-      document.getElementById('b1-vol').textContent = v1.toFixed(2) + ' m³';
-      document.getElementById('b1-bs').textContent = 'Bs. ' + c1.toFixed(2);
-      document.getElementById('b2-vol').textContent = v2.toFixed(2) + ' m³';
-      document.getElementById('b2-bs').textContent = 'Bs. ' + c2.toFixed(2);
-      document.getElementById('b3-vol').textContent = v3.toFixed(2) + ' m³';
-      document.getElementById('b3-bs').textContent = 'Bs. ' + c3.toFixed(2);
-      document.getElementById('total-sela').textContent = 'Bs. ' + total.toFixed(2);
-      document.getElementById('val-costo').textContent = 'Bs. ' + total.toFixed(2);
-    }
-
-    function iniciarFirebase() {
-      const badge = document.getElementById('connection-status');
-
-      try {
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const tiempoRealRef = ref(db, 'medidor_01/tiempo_real');
-
-        onValue(tiempoRealRef, (snapshot) => {
-          const data = snapshot.val();
-          if (!data) {
-            badge.textContent = '● Sin datos en nodo';
-            badge.style.background = '#fef3c7';
-            badge.style.color = '#92400e';
-            document.getElementById('val-estado-flujo').textContent = 'Sin datos en /medidor_01/tiempo_real';
-            return;
-          }
-
-          const caudalCrudo = Number(data.caudal_lpm ?? data.caudal ?? 0);
-          const litrosCrudos = Number(data.volumen_litros ?? data.litros ?? 0);
-          const m3Crudos = Number(data.volumen_m3 ?? (litrosCrudos / 1000.0));
-          const aireDetectado = Boolean(data.aire_detectado);
-          const tsServidor = Number(data.ultima_actualizacion ?? 0);
-
-          const caudal = (!isNaN(caudalCrudo) && caudalCrudo >= 0) ? caudalCrudo : 0;
-          const litros = (!isNaN(litrosCrudos) && litrosCrudos >= 0) ? litrosCrudos : 0;
-          const m3 = (!isNaN(m3Crudos) && m3Crudos >= 0) ? m3Crudos : (litros / 1000.0);
-
-          const fechaLectura = tsServidor > 0 ? new Date(tsServidor) : new Date();
-          const horaTexto = fechaLectura.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-          });
-
-          const antiguedadSeg = tsServidor > 0 ? Math.max(0, Math.round((Date.now() - tsServidor) / 1000)) : 0;
-          const espActivo = tsServidor === 0 || antiguedadSeg <= 20;
-
-          if (espActivo) {
-            badge.textContent = '● ESP32 en línea';
-            badge.style.background = '#d1fae5';
-            badge.style.color = '#065f46';
-          } else {
-            badge.textContent = `● Sin reporte hace ${antiguedadSeg}s`;
-            badge.style.background = '#fef3c7';
-            badge.style.color = '#92400e';
-          }
-
-          document.getElementById('val-caudal').innerHTML = `${caudal.toFixed(2)} <span style="font-size:0.95rem; font-weight:500;">L/min</span>`;
-          document.getElementById('val-litros').innerHTML = `${litros.toFixed(2)} <span style="font-size:0.95rem; font-weight:500;">L</span>`;
-          document.getElementById('val-m3').textContent = `Equivalente: ${m3.toFixed(5)} m³`;
-          document.getElementById('val-hora').textContent = horaTexto;
-
-          const estadoEl = document.getElementById('val-estado-flujo');
-          if (aireDetectado) {
-            estadoEl.textContent = '⚠️ Anomalía / posible aire en línea';
-            estadoEl.style.color = '#d97706';
-          } else if (caudal > 0.05) {
-            estadoEl.textContent = 'Flujo activo en tubería';
-            estadoEl.style.color = '#065f46';
-          } else {
-            estadoEl.textContent = 'Tubería sin flujo';
-            estadoEl.style.color = '#64748b';
-          }
-
-          document.getElementById('audit-detalle').innerHTML =
-            `Caudal: <strong>${caudal.toFixed(2)} L/min</strong> | ` +
-            `Acumulado: <strong>${litros.toFixed(2)} L</strong> (${m3.toFixed(5)} m³) | ` +
-            `Alerta aire: <strong>${aireDetectado ? 'SÍ' : 'NO'}</strong> | ` +
-            `Último timestamp: <strong>${horaTexto}</strong> (${antiguedadSeg}s atrás)`;
-
-          calcularTarifaSeLA(m3);
-
-          // Evita duplicar exactamente el mismo punto si no cambió el timestamp
-          if (tsServidor === 0 || tsServidor !== ultimoTimestampVisto) {
-            ultimoTimestampVisto = tsServidor;
-            actualizarGrafica(horaTexto, caudal);
-          }
-        }, (error) => {
-          badge.textContent = '● Error de permisos/red';
-          badge.style.background = '#fee2e2';
-          badge.style.color = '#dc2626';
-          console.error("Error Firebase:", error);
-        });
-      } catch (err) {
-        badge.textContent = '● Error de inicialización';
-        badge.style.background = '#fee2e2';
-        badge.style.color = '#dc2626';
-        console.error(err);
-      }
-    }
-  </script>
+show(sessionStorage.auth === '1');
+</script>
 </body>
 </html>
