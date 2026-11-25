@@ -37,7 +37,6 @@ header small,.reloj{color:#a5d3dc;font-size:.8rem}
 .flow .ola{animation:ola 6s linear infinite}
 @keyframes ola{to{transform:translateX(-50%)}}
 @media(prefers-reduced-motion:reduce){.flow .ola{animation:none}}
-#banner{display:none;background:#fffbeb;border:1px solid #fcd34d;border-left:6px solid #f59e0b;color:#92400e;padding:.9rem 1.1rem;border-radius:12px;margin-bottom:1.2rem;font-weight:600}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
 .card,.panel{background:#fff;border:1px solid var(--ln);border-radius:16px;box-shadow:0 10px 22px -16px #0b2a334d}
 .card{padding:1.15rem 1.2rem}
@@ -46,11 +45,12 @@ header small,.reloj{color:#a5d3dc;font-size:.8rem}
 .v small,.s,.panel h2 small{color:var(--mu);font-size:.78rem;font-weight:400}
 .card:first-child .v{font-size:clamp(2rem,4vw,2.7rem)}
 .stale .v{opacity:.35}
-.alert{border-color:#f59e0b;background:#fffbeb}
 .panel{padding:1.2rem;margin-top:1.2rem;overflow:hidden}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.2rem}
-.two .panel{margin-top:0}
-@media(max-width:900px){.two{grid-template-columns:1fr}}
+.main{display:grid;grid-template-columns:1.5fr 1fr;gap:1rem;margin-top:1.2rem}
+.main .panel,.two .panel{margin-top:0}
+.tot td{font-weight:700;border-top:2px solid var(--aq);background:#e6f6f8}
+@media(max-width:900px){.two,.main{grid-template-columns:1fr}}
 .panel h2{font-size:1rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;padding-bottom:.7rem;margin-bottom:.9rem;border-bottom:1px solid var(--ln)}
 .chart{position:relative;height:290px}
 .tw{overflow:auto;max-height:360px}
@@ -86,21 +86,25 @@ footer{text-align:center;color:var(--mu);font-size:.78rem;padding-top:1.2rem}
     <svg class="ola" viewBox="0 0 1200 26" preserveAspectRatio="none"><path d="M0 13Q150 0 300 13T600 13T900 13T1200 13V26H0Z" fill="#67e8f9"/></svg>
   </header>
 
-  <div id="banner" role="alert">Bolsa de aire detectada en la tubería.</div>
-
   <div class="cards">
     <div class="card" id="kq"><h3>Caudal actual</h3><div class="v" id="q"></div></div>
+    <div class="card"><h3>Importe estimado del mes</h3><div class="v" id="imp">Bs. 0.00</div><div class="s" id="imp-s"></div></div>
     <div class="card" id="kl"><h3>Volumen acumulado</h3><div class="v" id="l"></div><div class="s" id="m3"></div></div>
-    <div class="card" id="ke"><h3>Estado</h3><div class="v" id="est" style="font-size:1.25rem"></div><div class="s" id="aire"></div></div>
+    <div class="card" id="ke"><h3>Estado</h3><div class="v" id="est" style="font-size:1.25rem"></div></div>
   </div>
 
-  <div class="panel"><h2>Caudal en tiempo real (L/min) <small>Los puntos rojos marcan aire</small></h2><div class="chart"><canvas id="cv"></canvas></div></div>
+  <div class="main">
+    <div class="panel"><h2>Caudal en tiempo real (L/min)</h2><div class="chart"><canvas id="cv"></canvas></div></div>
+    <div class="panel"><h2>Tarifa SeLA, categoría doméstica <small>mes actual</small></h2>
+      <div class="tw"><table><thead><tr><th>Rango de consumo</th><th class="n">Volumen</th><th class="n">Importe</th></tr></thead><tbody id="tb"></tbody></table></div>
+      <p class="s" style="margin-top:.7rem">Importe referencial según la tarifa configurada en el código. Verifica los valores con tu factura de SeLA.</p></div>
+  </div>
 
   <div class="two">
     <div class="panel"><h2>Consumo por día <small id="msg"></small></h2>
-      <div class="tw"><table><thead><tr><th>Fecha</th><th class="n">Litros</th><th class="n">m³</th><th class="n">Aire</th></tr></thead><tbody id="td"></tbody></table></div></div>
+      <div class="tw"><table><thead><tr><th>Fecha</th><th class="n">Litros</th><th class="n">m³</th></tr></thead><tbody id="td"></tbody></table></div></div>
     <div class="panel"><h2>Consumo por mes <button class="btn" id="act">Actualizar</button></h2>
-      <div class="tw"><table><thead><tr><th>Mes</th><th class="n">Litros</th><th class="n">m³</th><th class="n">Aire</th></tr></thead><tbody id="tm"></tbody></table></div></div>
+      <div class="tw"><table><thead><tr><th>Mes</th><th class="n">Litros</th><th class="n">m³</th><th class="n">Importe (Bs)</th></tr></thead><tbody id="tm"></tbody></table></div></div>
   </div>
   <footer>Telemetría Hídrica, Medidor 01. Hora de Bolivia (UTC-4).</footer>
 </section>
@@ -114,12 +118,23 @@ const CFG = {
   projectId: "base-de-datos-ivan",
   appId: "1:000000000000:web:0000000000000000"
 };
-// Ruta en Firebase, segundos sin reporte, duración de la alerta (ms), meses de historial, caudal máx. (L/min), UTC-4, puntos de la gráfica
-const RUTA = 'medidor_01', OFFLINE = 20, AIRE_MS = 3e4, MESES = 2, QMAX = 30, TZ = 4, PTS = 30;
+// Ruta en Firebase, segundos sin reporte, meses de historial, caudal máx. (L/min), UTC-4, puntos de la gráfica
+const RUTA = 'medidor_01', OFFLINE = 20, MESES = 2, QMAX = 30, TZ = 4, PTS = 30;
+
+// Tarifa doméstica de SeLA Oruro (Bs). El cargo fijo cubre el rango mínimo.
+// AJUSTA ESTOS VALORES con los de tu factura de SeLA: aquí están los que tenía tu página original.
+const TARIFA = {
+  cargoFijo: 18.50,
+  rangos: [
+    { nombre: 'Mínimo (0 a 10 m³)', hasta: 10, precio: 0 },
+    { nombre: 'Bloque 1 (11 a 20 m³)', hasta: 20, precio: 2.60 },
+    { nombre: 'Bloque 2 (21 a 30 m³)', hasta: 30, precio: 3.80 },
+    { nombre: 'Bloque 3 (más de 30 m³)', hasta: Infinity, precio: 5.20 }
+  ]
+};
 
 // ---------- Utilidades ----------
 const num = v => (v = Number(v)) >= 0 && isFinite(v) ? v : 0;
-const bool = v => v === true || v === 'true';
 const fh = (t, a, b) => new Date(t - TZ * 36e5).toISOString().slice(a, b);
 const dia = t => fh(t, 0, 10), hora = t => fh(t, 11, 19);
 const f2 = v => v.toFixed(2), cu = l => (l / 1000).toFixed(3);
@@ -145,8 +160,8 @@ $('login').onsubmit = async e => {
 $('salir').onclick = () => { sessionStorage.removeItem('auth'); $('p').value = ''; show(false); };
 
 // ---------- Estado ----------
-let db, fb, offset = 0, online = null, errMsg = '', ult = null, aireHasta = 0, aireOn = false;
-let vivos = [], hist = [], dias = {}, cargando = false, tsGraf = 0, chart;
+let db, fb, offset = 0, online = null, errMsg = '', ult = null, ultHistL = null;
+let dias = {}, cargando = false, tsGraf = 0, chart;
 const ahora = () => Date.now() + offset;   // reloj corregido con el del servidor
 
 // ---------- Gráfica ----------
@@ -154,26 +169,24 @@ function crearGrafica() {
   if (!window.Chart) return;
   chart = new Chart($('cv'), {
     type: 'line',
-    data: { labels: [], datasets: [{ data: [], borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,.14)', borderWidth: 2.5, fill: true, tension: .3, pointRadius: [], pointBackgroundColor: [] }] },
+    data: { labels: [], datasets: [{ data: [], borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,.14)', borderWidth: 2.5, fill: true, tension: .3, pointRadius: 3, pointBackgroundColor: '#0e7490' }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 0, maxTicksLimit: 6 } }, y: { beginAtZero: true, suggestedMax: 15 } } }
   });
 }
-function graficar(t, q, aire) {
+function graficar(t, q) {
   if (!chart) return;
   const d = chart.data, s = d.datasets[0];
-  if (d.labels.length >= PTS) [d.labels, s.data, s.pointRadius, s.pointBackgroundColor].forEach(a => a.shift());
+  if (d.labels.length >= PTS) { d.labels.shift(); s.data.shift(); }
   d.labels.push(hora(t).slice(0, 5)); s.data.push(q);
-  s.pointRadius.push(aire ? 7 : 3); s.pointBackgroundColor.push(aire ? '#dc2626' : '#0e7490');
   chart.update('none');
 }
 
 // ---------- Lectura en tiempo real ----------
 function lectura(d) {
   if (!d) { ult = null; return pintar(); }
-  ult = { ts: num(d.ultima_actualizacion), rec: ahora(), caudal: num(d.caudal_lpm ?? d.caudal), l: num(d.volumen_litros ?? d.litros), aire: bool(d.aire_detectado) };
+  ult = { ts: num(d.ultima_actualizacion), rec: ahora(), caudal: num(d.caudal_lpm ?? d.caudal), l: num(d.volumen_litros ?? d.litros) };
   const t = ult.ts || ult.rec;
-  if (ult.aire) { aireHasta = ahora() + AIRE_MS; if (!aireOn) { aireOn = true; vivos.push(t); } }
-  if (t !== tsGraf) { tsGraf = t; graficar(t, ult.caudal, ult.aire); }
+  if (t !== tsGraf) { tsGraf = t; graficar(t, ult.caudal); }
   pintar(); render();
 }
 
@@ -186,38 +199,48 @@ function pintar() {
   const e = errMsg ? ['bad', errMsg] : !online ? ['warn', 'Esperando conexión'] : !ult ? ['warn', 'Sin datos en el nodo'] : off ? ['warn', 'Medidor sin reporte hace ' + dur(edad)] : ['', 'Medidor en línea'];
   set('esp', e[0], e[1]);
 
-  const st = !ult || off || online !== true, aireAct = n < aireHasta;
-  if (!aireAct) aireOn = false;
+  const st = !ult || off || online !== true;
   ['kq', 'kl', 'ke'].forEach(i => $(i).classList.toggle('stale', st));
   $('q').innerHTML = (st ? '--' : f2(ult.caudal)) + ' <small>L/min</small>';
   $('l').innerHTML = (ult ? f2(ult.l) : '--') + ' <small>L</small>';
   $('m3').textContent = ult ? cu(ult.l) + ' m³' : '';
-  $('banner').style.display = aireAct ? 'block' : 'none';
-  $('ke').classList.toggle('alert', aireAct);
-  $('hero').classList.toggle('flow', !st && !aireAct && ult.caudal > .05);
-  $('est').textContent = aireAct ? '⚠ Bolsa de aire detectada' : st ? 'Sin datos' : ult.caudal > QMAX ? '⚠ Caudal fuera de rango' : ult.caudal > .05 ? 'Flujo activo' : 'Tubería sin flujo';
-  document.title = (aireAct ? '⚠ ' : '') + 'Telemetría Hídrica';
+  $('hero').classList.toggle('flow', !st && ult.caudal > .05);
+  $('est').textContent = st ? 'Sin datos' : ult.caudal > QMAX ? '⚠ Caudal fuera de rango' : ult.caudal > .05 ? 'Flujo activo' : 'Tubería sin flujo';
 }
 
-// ---------- Tablas ----------
-const eventos = () => {
-  const r = [];
-  for (const x of [...hist, ...vivos].sort((a, b) => b - a)) if (!r.length || r.at(-1) - x > 6e4) r.push(x);
-  return r;
-};
+// ---------- Tarifa SeLA: el importe se calcula sobre el consumo del mes ----------
+function calcularTarifa(m3) {
+  let desde = 0, total = TARIFA.cargoFijo;
+  const filas = TARIFA.rangos.map((r, i) => {
+    const v = Math.max(0, Math.min(m3, r.hasta) - desde), bs = v * r.precio + (i ? 0 : TARIFA.cargoFijo);
+    total += v * r.precio; desde = r.hasta;
+    return { nombre: r.nombre, v, bs };
+  });
+  return { total, filas };
+}
+
+// ---------- Tablas y tarjeta de importe ----------
+const sumaMes = k => Object.keys(dias).reduce((a, x) => x.startsWith(k) ? a + dias[x] : a, 0);
 function render() {
-  const ev = eventos(), n = ahora(), hoy = dia(n), cnt = k => ev.filter(t => dia(t).startsWith(k)).length;
-  const fila = (c, a, l, k) => `<tr class="${c}"><td>${a}</td><td class="n">${f2(l)}</td><td class="n">${cu(l)}</td><td class="n">${cnt(k)}</td></tr>`;
-  $('aire').textContent = 'Bolsas de aire hoy: ' + cnt(hoy);
+  const n = ahora(), hoy = dia(n), mes = hoy.slice(0, 7);
+  // consumo posterior al último registro del historial (mantiene el importe al día)
+  const extra = ult && ultHistL !== null && ult.l >= ultHistL ? ult.l - ultHistL : 0;
+  const fila = (c, a, l, x = '') => `<tr class="${c}"><td>${a}</td><td class="n">${f2(l)}</td><td class="n">${cu(l)}</td>${x}</tr>`;
   let h = '', m = '';
-  for (let i = 0; i < 31; i++) { const k = dia(n - i * 864e5); h += fila(i ? '' : 'hoy', k, dias[k] || 0, k); }
+  for (let i = 0; i < 31; i++) { const k = dia(n - i * 864e5); h += fila(i ? '' : 'hoy', k, (dias[k] || 0) + (i ? 0 : extra)); }
   const d0 = new Date(n - TZ * 36e5);
   for (let i = 0; i <= MESES; i++) {
     const d = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() - i, 1)), k = d.toISOString().slice(0, 7);
-    const l = Object.keys(dias).reduce((a, x) => x.startsWith(k) ? a + dias[x] : a, 0);
-    m += fila(i ? '' : 'hoy', d.toLocaleDateString('es', { month: 'long', year: 'numeric', timeZone: 'UTC' }), l, k);
+    const l = sumaMes(k) + (i ? 0 : extra);
+    m += fila(i ? '' : 'hoy', d.toLocaleDateString('es', { month: 'long', year: 'numeric', timeZone: 'UTC' }), l, `<td class="n">${f2(calcularTarifa(l / 1000).total)}</td>`);
   }
   $('td').innerHTML = h; $('tm').innerHTML = m;
+
+  const lm = sumaMes(mes) + extra, t = calcularTarifa(lm / 1000);
+  $('imp').textContent = 'Bs. ' + f2(t.total);
+  $('imp-s').textContent = cu(lm) + ' m³ consumidos este mes';
+  $('tb').innerHTML = t.filas.map(f => `<tr><td>${f.nombre}</td><td class="n">${f.v.toFixed(3)} m³</td><td class="n">Bs. ${f2(f.bs)}</td></tr>`).join('') +
+    `<tr class="tot"><td colspan="2">Total estimado</td><td class="n">Bs. ${f2(t.total)}</td></tr>`;
 }
 
 // ---------- Historial: consumo = suma de diferencias del acumulado ----------
@@ -228,19 +251,18 @@ async function cargarHist() {
     const d0 = new Date(ahora() - TZ * 36e5), ini = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() - MESES, 1) + TZ * 36e5;
     const snap = await fb.get(fb.query(fb.ref(db, RUTA + '/historial'), fb.orderByChild('ultima_actualizacion'), fb.startAt(ini)));
     const arr = [];
-    snap.forEach(c => { const v = c.val() || {}, ts = num(v.ultima_actualizacion); if (ts) arr.push({ ts, l: num(v.volumen_litros ?? v.litros), a: bool(v.aire_detectado) }); });
+    snap.forEach(c => { const v = c.val() || {}, ts = num(v.ultima_actualizacion); if (ts) arr.push({ ts, l: num(v.volumen_litros ?? v.litros) }); });
     arr.sort((a, b) => a.ts - b.ts);
-    const D = {}, E = []; let p = null;
+    const D = {}; let p = null;
     for (const e of arr) {
       if (p) {
         let dl = e.l - p.l;
         if (dl < 0) dl = e.l;                                          // el ESP32 se reinició: el contador volvió a 0
         if (dl <= (e.ts - p.ts) / 6e4 * QMAX + 1) { const k = dia(e.ts); D[k] = (D[k] || 0) + dl; }   // descarta saltos imposibles
       }
-      if (e.a && !(p && p.a)) E.push(e.ts);
       p = e;
     }
-    dias = D; hist = E;
+    dias = D; ultHistL = arr.length ? arr[arr.length - 1].l : null;
     $('msg').textContent = arr.length ? `Actualizado ${hora(ahora()).slice(0, 5)}, ${arr.length} registros` : 'Sin registros en el historial';
   } catch (e) { $('msg').textContent = 'No se pudo leer el historial: ' + (e.code || e.message); }
   cargando = false; render();
