@@ -160,7 +160,7 @@ $('login').onsubmit = async e => {
 $('salir').onclick = () => { sessionStorage.removeItem('auth'); $('p').value = ''; show(false); };
 
 // ---------- Estado ----------
-let db, fb, offset = 0, online = null, errMsg = '', ult = null, ultHistL = null;
+let db, fb, offset = 0, online = null, errMsg = '', ult = null, ultHistL = 0, histOk = false;
 let dias = {}, cargando = false, tsGraf = 0, chart;
 const ahora = () => Date.now() + offset;   // reloj corregido con el del servidor
 
@@ -224,7 +224,7 @@ const sumaMes = k => Object.keys(dias).reduce((a, x) => x.startsWith(k) ? a + di
 function render() {
   const n = ahora(), hoy = dia(n), mes = hoy.slice(0, 7);
   // consumo posterior al último registro del historial (mantiene el importe al día)
-  const extra = ult && ultHistL !== null && ult.l >= ultHistL ? ult.l - ultHistL : 0;
+  const extra = histOk && ult ? (ult.l >= ultHistL ? ult.l - ultHistL : ult.l) : 0;
   const fila = (c, a, l, x = '') => `<tr class="${c}"><td>${a}</td><td class="n">${f2(l)}</td><td class="n">${cu(l)}</td>${x}</tr>`;
   let h = '', m = '';
   for (let i = 0; i < 31; i++) { const k = dia(n - i * 864e5); h += fila(i ? '' : 'hoy', k, (dias[k] || 0) + (i ? 0 : extra)); }
@@ -244,27 +244,35 @@ function render() {
 }
 
 // ---------- Historial: consumo = suma de diferencias del acumulado ----------
+// arr: registros ordenados por hora. baseL/baseTs: último registro ANTERIOR a la ventana (0 si no existe),
+// así el primer registro también cuenta y el consumo del día coincide con el volumen acumulado.
+function consumoPorDia(arr, baseL, baseTs) {
+  const D = {}; let p = { l: baseL, ts: baseTs };
+  for (const e of arr) {
+    let dl = e.l - p.l;
+    if (dl < 0) dl = e.l;                                                        // el ESP32 se reinició: el contador volvió a 0
+    if (!p.ts || dl <= (e.ts - p.ts) / 6e4 * QMAX + 1) { const k = dia(e.ts); D[k] = (D[k] || 0) + dl; }   // descarta saltos imposibles
+    p = e;
+  }
+  return D;
+}
 async function cargarHist() {
   if (!db || cargando) return;
   cargando = true; $('msg').textContent = 'Actualizando…';
   try {
     const d0 = new Date(ahora() - TZ * 36e5), ini = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() - MESES, 1) + TZ * 36e5;
-    const snap = await fb.get(fb.query(fb.ref(db, RUTA + '/historial'), fb.orderByChild('ultima_actualizacion'), fb.startAt(ini)));
-    const arr = [];
+    const q = fb.ref(db, RUTA + '/historial'), idx = fb.orderByChild('ultima_actualizacion');
+    const [snap, prev] = await Promise.all([
+      fb.get(fb.query(q, idx, fb.startAt(ini))),
+      fb.get(fb.query(q, idx, fb.endAt(ini - 1), fb.limitToLast(1)))      // registro anterior a la ventana
+    ]);
+    const arr = []; let baseL = 0, baseTs = 0;
     snap.forEach(c => { const v = c.val() || {}, ts = num(v.ultima_actualizacion); if (ts) arr.push({ ts, l: num(v.volumen_litros ?? v.litros) }); });
+    prev.forEach(c => { const v = c.val() || {}; baseL = num(v.volumen_litros ?? v.litros); baseTs = num(v.ultima_actualizacion); });
     arr.sort((a, b) => a.ts - b.ts);
-    const D = {}; let p = null;
-    for (const e of arr) {
-      if (p) {
-        let dl = e.l - p.l;
-        if (dl < 0) dl = e.l;                                          // el ESP32 se reinició: el contador volvió a 0
-        if (dl <= (e.ts - p.ts) / 6e4 * QMAX + 1) { const k = dia(e.ts); D[k] = (D[k] || 0) + dl; }   // descarta saltos imposibles
-      }
-      p = e;
-    }
-    dias = D; ultHistL = arr.length ? arr[arr.length - 1].l : null;
+    dias = consumoPorDia(arr, baseL, baseTs); ultHistL = arr.length ? arr[arr.length - 1].l : baseL; histOk = true;
     $('msg').textContent = arr.length ? `Actualizado ${hora(ahora()).slice(0, 5)}, ${arr.length} registros` : 'Sin registros en el historial';
-  } catch (e) { $('msg').textContent = 'No se pudo leer el historial: ' + (e.code || e.message); }
+  } catch (e) { histOk = false; $('msg').textContent = 'No se pudo leer el historial: ' + (e.code || e.message); }
   cargando = false; render();
 }
 $('act').onclick = cargarHist;
